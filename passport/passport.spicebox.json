@@ -2,7 +2,7 @@
   "schema": "agent-commerce/passport/v1",
   "passport_id": "mp_spicebox",
   "merchant_id": "spicebox",
-  "version": "2026-09-05T15:55:26.863333+00:00",
+  "version": "2026-09-05T17:11:58.920126+00:00",
   "merchant": {
     "name": "Spice Box Kitchen",
     "domain": "spicebox.example",
@@ -15,7 +15,7 @@
   },
   "catalog": {
     "source": "merchant_system",
-    "updated_at": "2026-09-05T15:55:26.863333+00:00",
+    "updated_at": "2026-09-05T17:11:58.920126+00:00",
     "ttl_seconds": 300,
     "items": [
       {
@@ -156,26 +156,26 @@
       "type": "payment_provider_connected",
       "issuer": "merchant",
       "status": "declared",
-      "issued_at": "2026-09-05T15:55:26.863333+00:00"
+      "issued_at": "2026-09-05T17:11:58.920126+00:00"
     },
     {
       "type": "refund_policy_declared",
       "issuer": "merchant",
       "status": "declared",
-      "issued_at": "2026-09-05T15:55:26.863333+00:00"
+      "issued_at": "2026-09-05T17:11:58.920126+00:00"
     },
     {
       "type": "business_identity_verified",
       "issuer": "razorpay",
       "status": "verified",
-      "issued_at": "2026-09-05T15:55:26.863333+00:00"
+      "issued_at": "2026-09-05T17:11:58.920126+00:00"
     }
   ],
   "integrity": {
     "signature_algorithm": "Ed25519",
     "key_id": "spicebox-key-1",
     "public_key_url": "https://spicebox.example/.well-known/agent-commerce-key.json",
-    "payload_sha256": "1aaa32e5e3a0c5af8c783c9051b56402bfa8fc1850da330a81cf495abbbd5402",
-    "signature": "MxWFBV2-JFeB2ipm-LAh-POPdWFMNsjIF8JlslYkruXtCAFLJpuD4qK9pW2HAV5tkOhq0B-0dm2556EKe7FfCQ=="
+    "payload_sha256": "9a1d47f0160ab850cb7f0ccf520b89fa404e556800cd40db7f02568ba8dfc9da",
+    "signature": "S6FqOINDr2LcRDua0N1HPsdtI-x4BquG37ZRmydYD73wSiiOjX8kbDmDbvAYS4awaEhaCLPAe2kqecyIjT2UDQ=="
   }
 }

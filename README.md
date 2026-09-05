@@ -1,107 +1,122 @@
-# Merchant Passport + MarginMind
+# Passport Commerce
 
-Razorpay AI Buildathon — Track 01: AI Growth & Agentic Commerce
+### Merchant Passport + MarginMind
 
-**Full setup, run, and demo instructions are in [START.md](START.md).** This file is
-the design pitch and repo map; START.md is the operational guide.
+**Razorpay AI Buildathon — Track 01: AI Growth & Agentic Commerce**
 
-## What this is
+> Everyone else is building the AI shopper. We built the reason an AI shopper can safely trust and transact with the seller.
 
-Three services, one signed protocol between them:
+---
 
-- **Merchant Passport** (`passport/`) — a signed, machine-readable contract a merchant
-  publishes (`/.well-known/agent-commerce.json`) describing identity, catalog, policies,
-  capabilities, and financial bounds. Ed25519-signed, versioned, TTL-bound, one keypair
-  per merchant. Also hosts the merchant control plane that produces it.
-- **MarginMind** (`marginmind/`) — the merchant-side decision engine. Deterministic,
-  code-only. Enforces margin floor / discount ceiling / order cap from its OWN trusted
-  config, never from anything a caller sends it. Never an LLM making money decisions.
-- **Buyer Agent** (`buyer-agent/`) — the buyer-side agent. Verifies the passport, applies
-  **its own risk policy** to the evidence in it, parses intent with an LLM (Groq, via
-  LangChain), *negotiates* on soft preferences when declined (never on merchant bounds),
-  and drives Razorpay test-mode payment after explicit buyer consent. Streams every hop
-  as a typed event.
+## Objectives
 
-The split matters: **LLM reasons and talks, code enforces and pays.**
+AI buyer agents are starting to shop for people, but today they do it by scraping websites and guessing — at prices, at policies, at whether a merchant can be trusted at all. This project solves that:
 
-## The three ideas worth stealing
+1. **Verifiable merchant identity.** A merchant publishes a signed (Ed25519), versioned, TTL-bound **Passport** — identity, live catalog, policies, capabilities, spending bounds — at a well-known URL. A buyer agent verifies it cryptographically, never scrapes it.
+2. **Code makes money decisions, not the model.** **MarginMind** enforces margin floor, discount ceiling, and order cap from its own trusted config — never from anything a caller sends it. An LLM parses intent and explains outcomes; it never decides a number.
+3. **The buyer gets a say too.** A passport publishes evidence, not a trust score. A deterministic, buyer-side risk policy decides whether that evidence is good enough to spend money against — a cryptographically perfect merchant can still be refused.
+4. **Guarded failure, not staged success.** An agent that tries to exceed its authority is stopped *before* any money moves, with a structured, auditable reason — proven by twelve live red-team attacks anyone can fire from the dashboard.
 
-**1. The visualisation is the event stream.** The dashboard's orchestration canvas
-doesn't animate a diagram of the architecture — it renders the pipeline's own typed
-events, each carrying the elapsed time actually measured on the server. The same
-events are the rows in the audit log. Playback can be slowed to a quarter speed for a
-demo; the reported latencies never change. See `buyer-agent/trace.py`.
+**LLM reasons and talks, code enforces and pays.**
 
-**2. A passport publishes evidence, not a trust score — so the buyer needs a policy.**
-Somebody has to decide whether "Razorpay account connected, 7-day refund window,
-create_order granted" is good enough to spend money against, and that decision belongs
-to the buyer, not the merchant. `buyer-agent/risk_policy.py` is deterministic,
-buyer-side, fails closed, and cannot be relaxed by anything a merchant publishes. A
-cryptographically perfect merchant can still be refused.
+---
 
-**3. Failure is operable, not staged.** `buyer-agent/redteam.py` is twelve attacks
-anyone can fire from the dashboard, each running through the ordinary code path — real
-tampered bytes over real HTTP, real forged prices, real hostile text written into the
-live catalog and restored afterwards. Every attack reports an `outcome`, and `allowed`
-is a legal value: a console that can only report good news is a decoration.
+## Architecture
 
-## Repo layout
+Three independent FastAPI services + a React dashboard, talking over real HTTP:
+
+| Service | Port | Role |
+|---|---|---|
+| `passport/` | 8001 | Generates, signs (Ed25519), and serves merchant passports. Also hosts the merchant control plane. |
+| `marginmind/` | 8002 | Deterministic pricing/decision engine — margin floor, discount ceiling, order cap. |
+| `buyer-agent/` | 8003 | Orchestrator: verifies the passport, applies the buyer's risk policy, parses intent via Groq/LangChain, negotiates, drives Razorpay payment. Streams every hop as a typed event. |
+| `dashboard/` | 5173 | React + Vite frontend — orchestration canvas, registry, passport view, merchant console, risk policy, red team, audit trail. |
 
 ```
 Passport/
-├── passport/            Merchant Passport generator + signer + server (port 8001)
-│   ├── merchant_data.json       raw config for the default merchant (incl. cost_minor)
-│   ├── merchant_data.<id>.json  any additional merchant — adding one is a file drop
-│   ├── merchants.py             per-merchant paths, lazy keypair generation
-│   ├── keys.py                  Ed25519 keypair generation (default merchant)
-│   ├── generator.py             builds + signs passports (allowlists public fields)
-│   ├── server.py                well-known endpoints, tamper modes, control plane
-│   └── verify.py                merchant-side self-test
-│
-├── marginmind/           Deterministic decision engine, its own service (port 8002)
-│   ├── scoring.py                pure scoring function, unit-testable, no I/O
-│   ├── engine.py                 filtering, basket generation, bounds, repricing
-│   ├── merchant_store.py         MarginMind's OWN trusted read of merchant config
-│   ├── server.py                 recommend / validate_order / bounds
-│   └── test_scoring.py           pytest — determinism, bounds, forged-input rejection
-│
-├── buyer-agent/          The agentic side, API gateway for the dashboard (port 8003)
-│   ├── trace.py                  the event stream behind the canvas AND the audit log
-│   ├── pipeline.py               the pipeline, expressed once, as traced hops
-│   ├── risk_policy.py            the BUYER's own deterministic trust rules
-│   ├── sanitize.py               catalog text is data, never instructions
-│   ├── redteam.py                twelve real attacks against the running system
-│   ├── passport_client.py        fetch + verify signature + freshness
-│   ├── marginmind_client.py      HTTP client to MarginMind
-│   ├── intent_parser.py          Groq: free text -> structured BuyerIntent
-│   ├── negotiator.py             LangChain tool-calling agent, bounded retries
-│   ├── explainer.py              Groq: narrates a final decision, invents nothing
-│   ├── orders_store.py           in-memory idempotent order records
-│   ├── payments/                 dual-mode Razorpay + webhook verification
-│   └── server.py                 SSE streams, policy API, red team API, registry
-│
-├── shared/               Common code imported by all three services
-│   ├── models.py                 Pydantic contracts
-│   ├── verify.py                 canonical signature/freshness checks
-│   ├── audit.py                  append-only audit log
-│   └── ids.py                    correlation/order ids, content hashing
-│
-├── dashboard/            React + Vite frontend (port 5173)
-│   └── src/
-│       ├── pages/                Overview, Demo, Registry, Passport, ControlPlane,
-│       │                         RiskPolicy, RedTeam, Audit
-│       ├── components/           AgentCanvas, TracePanels, Nav, CheckoutModal, ui
-│       ├── lib/                  topology, theatre (playback), useAgentRun, format
-│       └── styles/               tokens, base, app, canvas, pages
-├── audit/                audit.log lives here at runtime (gitignored)
-└── .env.example          copy to .env — GROQ_API_KEY, optional Razorpay test keys
+├── passport/       Merchant Passport generator, signer, server
+├── marginmind/     Deterministic decision engine + tests
+├── buyer-agent/    Agent pipeline, risk policy, red team, payments
+├── shared/         Common contracts, signature/freshness checks, audit log
+├── dashboard/      React frontend
+├── scripts/        preflight_check.py — end-to-end health check
+└── .env.example    Copy to .env — GROQ_API_KEY, optional Razorpay test keys
 ```
+
+See [PITCH.md](PITCH.md) for the design rationale and build challenges, and [START.md](START.md) for the full demo script.
+
+---
+
+## Local setup
+
+### Prerequisites
+
+- Python 3.11+
+- Node.js 18+
+- A **Groq API key** ([console.groq.com](https://console.groq.com)) — required for the buyer agent's LLM steps
+- Optional: **Razorpay test-mode** Key ID + Secret — without these, payments run in a simulated mode that exercises the same code paths (including real HMAC signature verification)
+
+### Install
+
+```powershell
+cd Passport
+
+# Python deps
+python -m venv .venv
+.venv\Scripts\pip install -r requirements.txt
+
+# Frontend deps
+cd dashboard
+npm install
+cd ..
+
+# Secrets
+copy .env.example .env
+notepad .env   # fill in GROQ_API_KEY, and Razorpay keys if you have them
+```
+
+`.env`, private keys under `passport/`, and generated `passport*.json` files are gitignored — they're generated, not source.
+
+### Run
+
+One command (opens 3 PowerShell windows + the dashboard):
+
+```powershell
+.\run_services.ps1
+```
+
+Or manually, one terminal each:
+
+```powershell
+cd passport      ; ..\.venv\Scripts\python -m uvicorn server:app --port 8001 --reload
+cd marginmind    ; ..\.venv\Scripts\python -m uvicorn server:app --port 8002 --reload
+cd buyer-agent   ; ..\.venv\Scripts\python -m uvicorn server:app --port 8003 --reload
+cd dashboard     ; npm run dev
+```
+
+Then open **http://localhost:5173**. Each backend also serves interactive API docs at `/docs`.
+
+> On Windows, `localhost` resolves to `::1` before `127.0.0.1`, adding a ~2s delay per internal call. All inter-service URLs already use `127.0.0.1` — don't change that back.
+
+### Verify
+
+```powershell
+# Unit tests — no API keys needed
+.venv\Scripts\python -m pytest marginmind/test_scoring.py -v
+
+# Full end-to-end health check, with all services running
+.venv\Scripts\python scripts\preflight_check.py
+```
+
+Full walkthrough, demo script, and troubleshooting: [START.md](START.md).
+
+---
 
 ## Status
 
 - [x] Passport: schema, Ed25519 signing, well-known server, self-verifying refresh
 - [x] Multi-merchant: per-merchant keypairs, namespaced URLs, independent verification
-- [x] Merchant control plane: live edits that re-sign the passport and take effect immediately
+- [x] Merchant control plane: live edits that re-sign the passport instantly
 - [x] MarginMind: scoring, basket ranking, bounds enforcement, repricing, unit tests
 - [x] Buyer agent: intent parsing, passport verification, negotiation, explanation
 - [x] Buyer risk policy: deterministic, buyer-side, live-evaluated
@@ -111,5 +126,5 @@ Passport/
 - [x] Payments: dual-mode Razorpay (real test-mode API + Checkout.js, or simulated)
 - [x] Audit trail: cross-service, correlation-id-linked, append-only
 - [x] Dashboard: orchestration canvas, merchant console, risk policy, red team, audit
-
-See [START.md](START.md) for how to run it and the demo script.
+</content>
+</invoke>
