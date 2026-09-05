@@ -1,0 +1,156 @@
+/*
+ * Design tokens — the single source of truth for colour, type, spacing and
+ * motion. Components never hard-code a hex value; they reference a semantic
+ * token so both themes stay consistent by construction.
+ *
+ * The "engine" colours are load-bearing, not decorative: every step of the
+ * pipeline is tinted by WHICH engine performed it, so the core claim of the
+ * project — the LLM reasons and talks, deterministic code enforces and pays —
+ * is legible at a glance instead of needing a paragraph of explanation.
+ */
+
+:root {
+  /* ---- type ---- */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+  --fs-display: clamp(2.1rem, 1.35rem + 2.9vw, 3.6rem);
+  --fs-h1: clamp(1.55rem, 1.25rem + 1.2vw, 2.1rem);
+  --fs-h2: 1.075rem;
+  --fs-h3: 0.9375rem;
+  --fs-body: 0.9375rem;
+  --fs-sm: 0.8125rem;
+  --fs-xs: 0.75rem;
+  --fs-2xs: 0.6875rem;
+
+  /* ---- spacing / shape ---- */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+  --r-full: 999px;
+
+  --nav-h: 62px;
+  --page-max: 1280px;
+
+  /* ---- motion ---- */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --t-fast: 130ms var(--ease);
+  --t-med: 240ms var(--ease);
+  --t-slow: 480ms var(--ease-out);
+}
+
+/* ===================== DARK (default) ===================== */
+
+[data-theme="dark"] {
+  --canvas: #08090c;
+  --canvas-2: #0b0d12;
+  --surface: #0f1116;
+  --surface-2: #151822;
+  --surface-3: #1b1f2b;
+  --surface-hover: #1e2330;
+
+  --border: #222736;
+  --border-2: #2c3243;
+  --border-strong: #3a4356;
+
+  --text: #e9ebf2;
+  --text-2: #a3aabc;
+  --text-3: #6f7789;
+
+  --gold: #f4b740;
+  --gold-soft: #4a3a12;
+  --gold-ghost: rgba(244, 183, 64, 0.12);
+  --on-gold: #14140c;
+
+  --emerald: #34d399;
+  --emerald-soft: #10402f;
+  --emerald-ghost: rgba(52, 211, 153, 0.11);
+
+  --violet: #a78bfa;
+  --violet-soft: #2e2454;
+  --violet-ghost: rgba(167, 139, 250, 0.12);
+
+  --sky: #38bdf8;
+  --sky-soft: #12384f;
+  --sky-ghost: rgba(56, 189, 248, 0.11);
+
+  --rose: #fb7185;
+  --rose-soft: #4a1b25;
+  --rose-ghost: rgba(251, 113, 133, 0.11);
+
+  --amber: #fbbf24;
+  --amber-soft: #443413;
+  --amber-ghost: rgba(251, 191, 36, 0.11);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 6px 20px -6px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 24px 60px -18px rgba(0, 0, 0, 0.75);
+  --shadow-glow: 0 0 0 1px rgba(244, 183, 64, 0.22), 0 12px 40px -14px rgba(244, 183, 64, 0.3);
+
+  --nav-bg: rgba(11, 13, 18, 0.82);
+  --overlay: rgba(4, 5, 8, 0.72);
+  --grid-line: rgba(255, 255, 255, 0.028);
+  --hero-glow-1: rgba(244, 183, 64, 0.13);
+  --hero-glow-2: rgba(52, 211, 153, 0.09);
+  --hero-glow-3: rgba(167, 139, 250, 0.09);
+  --scrim: rgba(255, 255, 255, 0.04);
+}
+
+/* ===================== LIGHT ===================== */
+
+[data-theme="light"] {
+  --canvas: #f6f7f9;
+  --canvas-2: #eef0f4;
+  --surface: #ffffff;
+  --surface-2: #f4f6f9;
+  --surface-3: #e9edf3;
+  --surface-hover: #eef1f6;
+
+  --border: #e2e6ee;
+  --border-2: #d3d9e4;
+  --border-strong: #b9c1d0;
+
+  --text: #0e1118;
+  --text-2: #4c5464;
+  --text-3: #7b8393;
+
+  --gold: #a06e05;
+  --gold-soft: #fdf0d2;
+  --gold-ghost: rgba(160, 110, 5, 0.09);
+  --on-gold: #ffffff;
+
+  --emerald: #047857;
+  --emerald-soft: #d3f2e5;
+  --emerald-ghost: rgba(4, 120, 87, 0.08);
+
+  --violet: #6d33e0;
+  --violet-soft: #e9e0fd;
+  --violet-ghost: rgba(109, 51, 224, 0.08);
+
+  --sky: #0369a1;
+  --sky-soft: #d6ecfa;
+  --sky-ghost: rgba(3, 105, 161, 0.08);
+
+  --rose: #be123c;
+  --rose-soft: #fbdde4;
+  --rose-ghost: rgba(190, 18, 60, 0.08);
+
+  --amber: #a35c07;
+  --amber-soft: #fcecd4;
+  --amber-ghost: rgba(163, 92, 7, 0.09);
+
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow-md: 0 6px 20px -8px rgba(16, 24, 40, 0.16);
+  --shadow-lg: 0 24px 56px -20px rgba(16, 24, 40, 0.24);
+  --shadow-glow: 0 0 0 1px rgba(160, 110, 5, 0.25), 0 12px 34px -16px rgba(160, 110, 5, 0.3);
+
+  --nav-bg: rgba(255, 255, 255, 0.85);
+  --overlay: rgba(20, 24, 33, 0.42);
+  --grid-line: rgba(16, 24, 40, 0.035);
+  --hero-glow-1: rgba(244, 183, 64, 0.2);
+  --hero-glow-2: rgba(4, 120, 87, 0.08);
+  --hero-glow-3: rgba(109, 51, 224, 0.08);
+  --scrim: rgba(16, 24, 40, 0.03);
+}

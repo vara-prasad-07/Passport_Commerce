@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Secrets
+.env
+passport/private_key.pem
+
+# Generated at runtime
+passport/passport.json
+audit/audit.log
+
+# Frontend
+dashboard/node_modules/
+dashboard/dist/
+
+# OS
+.DS_Store
+Thumbs.db

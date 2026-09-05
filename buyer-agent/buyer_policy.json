@@ -1,0 +1,23 @@
+{
+  "name": "Default buyer risk policy",
+  "require_valid_signature": true,
+  "require_fresh_passport": true,
+  "max_passport_age_seconds": 900,
+  "required_attestations": [
+    "payment_provider_connected"
+  ],
+  "min_refund_window_days": 7,
+  "require_buyer_confirmation_for_orders": true,
+  "required_capabilities": [
+    "create_order",
+    "request_payment"
+  ],
+  "max_autonomous_spend_minor": 150000,
+  "allowed_regions": [
+    "IN-BLR",
+    "IN-DEL",
+    "IN-MUM",
+    "IN-HYD"
+  ],
+  "blocked_categories": []
+}

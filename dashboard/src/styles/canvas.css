@@ -1,0 +1,1216 @@
+/*
+ * The orchestration canvas and the room it lives in.
+ *
+ * Three rules govern everything here:
+ *
+ *   1. Colour carries meaning, never decoration. A node or packet is violet
+ *      because a model did that step, emerald because deterministic code did,
+ *      gold because it touched money. Learn the legend once, read any run.
+ *   2. Motion is information. Things move because a message is actually in
+ *      flight; a packet shatters because a rule actually refused it. The room
+ *      assembles because the pipeline actually reached those services.
+ *   3. Nothing covers anything. The results panel is a sibling of the stage,
+ *      not an overlay — the canvas gives up width rather than being hidden,
+ *      because the moment the agent finishes should not be the moment you can
+ *      no longer see the agent.
+ */
+
+/* ============================ shell ============================ */
+
+.cinema {
+  position: relative;
+  height: calc(100vh - var(--nav-h));
+  overflow: hidden;
+  background:
+    radial-gradient(1000px 560px at 50% 6%, var(--hero-glow-1), transparent 72%),
+    radial-gradient(820px 520px at 8% 92%, var(--hero-glow-2), transparent 72%),
+    radial-gradient(820px 520px at 92% 88%, var(--hero-glow-3), transparent 72%),
+    var(--canvas);
+}
+
+/* A faint grid gives the packets something to move against — without it the
+   motion reads as floating rather than travelling. */
+.cinema::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 700ms var(--ease);
+}
+
+/* The grid belongs to a running system. An empty room stays empty. */
+.cinema:not(.stage-idle)::before {
+  opacity: 1;
+}
+
+.cinema-body {
+  display: flex;
+  height: 100%;
+  align-items: stretch;
+}
+
+.cinema-stage-col {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.canvas-wrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 66px 24px 172px;
+}
+
+.canvas-stage {
+  position: relative;
+  flex: none;
+  transform-origin: center center;
+}
+
+.canvas-svg {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+
+/* ============================ wires ============================ */
+
+.cedge {
+  fill: none;
+  stroke: var(--border-2);
+  stroke-width: 1.4;
+  stroke-dasharray: 3 7;
+  opacity: 0.7;
+  animation: edgeIn 620ms var(--ease-out) both;
+  animation-delay: calc(var(--boot-i, 0) * 62ms + 140ms);
+  transition: stroke 240ms var(--ease), stroke-width 240ms var(--ease);
+}
+
+@keyframes edgeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.7;
+  }
+}
+
+.cedge.is-live {
+  stroke: var(--text-3);
+  stroke-width: 1.9;
+  stroke-dasharray: 5 6;
+  opacity: 1;
+  animation: edgeFlow 900ms linear infinite;
+}
+
+.cedge.is-adhoc {
+  stroke-dasharray: 2 8;
+}
+
+@keyframes edgeFlow {
+  to {
+    stroke-dashoffset: -22;
+  }
+}
+
+/* ============================ nodes ============================ */
+
+.cnode {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 13px;
+  text-align: left;
+  border-radius: 14px;
+  border: 1px solid var(--border-2);
+  background: linear-gradient(160deg, var(--surface) 0%, var(--surface-2) 100%);
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  font: inherit;
+  color: var(--text);
+  /* The assembly. Each node arrives a beat after the one before it, ordered
+     outward from the buyer agent — see BOOT_ORDER in topology.js. */
+  animation: nodeIn 560ms var(--ease-out) both;
+  animation-delay: calc(var(--boot-i, 0) * 62ms);
+  transition:
+    border-color 220ms var(--ease),
+    box-shadow 260ms var(--ease),
+    opacity 300ms var(--ease);
+}
+
+@keyframes nodeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.82) translateY(14px);
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Hover changes border and shadow but never transform: the boot animation
+   uses `both`, so its final transform stays applied and a hover transform
+   would fight it. */
+.cnode:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-lg);
+}
+
+/* A node the run hasn't touched. Quiet, but never ghosted — a half-faded card
+   reads as clutter you have to look past. This one just recedes. */
+.cnode.is-quiet {
+  box-shadow: none;
+  border-color: var(--border);
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
+}
+
+.cnode.is-quiet .cnode-label {
+  color: var(--text-2);
+}
+
+.cnode.is-quiet .cnode-icon {
+  opacity: 0.7;
+}
+
+.cnode-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 9px;
+  background: var(--tone-ghost);
+  color: var(--tone);
+  border: 1px solid var(--tone-soft);
+  transition: opacity 240ms var(--ease);
+}
+
+.cnode-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cnode-label {
+  font-size: 0.8125rem;
+  font-weight: 650;
+  letter-spacing: -0.012em;
+  line-height: 1.2;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cnode-sub {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cnode.is-hero .cnode-label {
+  font-size: 0.9375rem;
+}
+
+.cnode.is-hero .cnode-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+}
+
+/* the accent rail — the fastest read of "which engine is this" */
+.cnode::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 13px;
+  bottom: 13px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--tone);
+  opacity: 0.85;
+}
+
+.cnode.is-quiet::before {
+  opacity: 0.4;
+}
+
+/* --- tones --- */
+.cnode.tone-emerald,
+.pk.tone-emerald,
+.trace-chip.tone-emerald,
+.hud-legend-item.tone-emerald,
+.inspector.tone-emerald,
+.sp-inspector.tone-emerald {
+  --tone: var(--emerald);
+  --tone-soft: var(--emerald-soft);
+  --tone-ghost: var(--emerald-ghost);
+}
+.cnode.tone-violet,
+.pk.tone-violet,
+.trace-chip.tone-violet,
+.hud-legend-item.tone-violet,
+.inspector.tone-violet,
+.sp-inspector.tone-violet {
+  --tone: var(--violet);
+  --tone-soft: var(--violet-soft);
+  --tone-ghost: var(--violet-ghost);
+}
+.cnode.tone-sky,
+.pk.tone-sky,
+.trace-chip.tone-sky,
+.hud-legend-item.tone-sky,
+.inspector.tone-sky,
+.sp-inspector.tone-sky {
+  --tone: var(--sky);
+  --tone-soft: var(--sky-soft);
+  --tone-ghost: var(--sky-ghost);
+}
+.cnode.tone-gold,
+.pk.tone-gold,
+.trace-chip.tone-gold,
+.hud-legend-item.tone-gold,
+.inspector.tone-gold,
+.sp-inspector.tone-gold {
+  --tone: var(--gold);
+  --tone-soft: var(--gold-soft);
+  --tone-ghost: var(--gold-ghost);
+}
+.cnode.tone-amber,
+.pk.tone-amber,
+.trace-chip.tone-amber,
+.hud-legend-item.tone-amber,
+.inspector.tone-amber,
+.sp-inspector.tone-amber {
+  --tone: var(--amber);
+  --tone-soft: var(--amber-soft);
+  --tone-ghost: var(--amber-ghost);
+}
+.cnode.tone-slate {
+  --tone: var(--text-3);
+  --tone-soft: var(--border-strong);
+  --tone-ghost: var(--scrim);
+}
+
+/* --- node states --- */
+
+.cnode-ring {
+  position: absolute;
+  inset: -3px;
+  border-radius: 17px;
+  pointer-events: none;
+  opacity: 0;
+  border: 2px solid var(--tone);
+}
+
+.cnode.is-busy {
+  border-color: var(--tone);
+  box-shadow:
+    0 0 0 1px var(--tone-soft),
+    0 14px 44px -14px var(--tone),
+    var(--shadow-md);
+}
+
+.cnode.is-busy .cnode-ring {
+  opacity: 1;
+  animation: nodeBreathe 1300ms var(--ease) infinite;
+}
+
+@keyframes nodeBreathe {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  70%,
+  100% {
+    transform: scale(1.06);
+    opacity: 0;
+  }
+}
+
+.cnode.is-ok {
+  border-color: var(--emerald);
+}
+
+.cnode.is-blocked {
+  border-color: var(--rose);
+  box-shadow:
+    0 0 0 1px var(--rose-soft),
+    0 16px 48px -14px var(--rose),
+    var(--shadow-md);
+}
+
+.cnode.is-error {
+  border-color: var(--amber);
+}
+
+.cnode-ms,
+.cnode-working,
+.cnode-code {
+  position: absolute;
+  right: 10px;
+  bottom: -9px;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  letter-spacing: 0.03em;
+  padding: 2px 6px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border-2);
+  background: var(--surface-3);
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+.cnode-working {
+  color: var(--tone);
+  border-color: var(--tone-soft);
+  background: var(--tone-ghost);
+}
+
+.cnode-code {
+  right: auto;
+  left: 10px;
+  max-width: calc(100% - 20px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--rose);
+  border-color: var(--rose-soft);
+  background: var(--rose-ghost);
+}
+
+/* ============================ packets ============================ */
+
+.pk {
+  color: var(--tone);
+  cursor: pointer;
+}
+
+.pk-glow {
+  fill: var(--tone);
+  opacity: 0.16;
+  filter: blur(5px);
+}
+
+.pk-core {
+  fill: var(--tone);
+  filter: drop-shadow(0 0 7px var(--tone));
+}
+
+.pk-trail {
+  fill: var(--tone);
+}
+
+.pk-chevron {
+  fill: none;
+  stroke: var(--canvas);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pk.is-reply .pk-core {
+  filter: drop-shadow(0 0 4px var(--tone));
+  opacity: 0.85;
+}
+
+.pk-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  fill: var(--text-2);
+  paint-order: stroke;
+  stroke: var(--canvas);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+/* --- the refusal --- */
+
+.pk-burst {
+  color: var(--rose);
+  pointer-events: none;
+}
+
+.pk-burst-ring,
+.pk-burst-ring2 {
+  fill: none;
+  stroke: var(--rose);
+  stroke-width: 2;
+}
+
+.pk-burst-core {
+  fill: var(--rose-ghost);
+  stroke: var(--rose);
+  stroke-width: 1.75;
+}
+
+.pk-burst-mark path {
+  stroke: var(--rose);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.pk-burst-text {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  fill: var(--rose);
+  paint-order: stroke;
+  stroke: var(--canvas);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+/* ============================ HUD ============================ */
+
+.cinema-hud {
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 18px;
+  pointer-events: none;
+  animation: hudIn 420ms var(--ease-out) both;
+}
+
+@keyframes hudIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+.cinema-hud > * {
+  pointer-events: auto;
+}
+
+.hud-left,
+.hud-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.hud-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border);
+  background: var(--nav-bg);
+  backdrop-filter: blur(12px);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+.hud-asked {
+  font-size: 0.75rem;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 34vw;
+  font-style: italic;
+}
+
+.hud-legend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border);
+  background: var(--nav-bg);
+  backdrop-filter: blur(12px);
+}
+
+.hud-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+.hud-legend-item i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--tone);
+  box-shadow: 0 0 7px var(--tone);
+}
+
+/* ============================ pace control ============================ */
+
+.pace {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px 5px 12px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border);
+  background: var(--nav-bg);
+  backdrop-filter: blur(12px);
+}
+
+.pace-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+.pace-btns {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--r-full);
+  background: var(--surface-3);
+}
+
+.pace-btn {
+  padding: 3px 9px;
+  border: none;
+  border-radius: var(--r-full);
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: background 160ms var(--ease), color 160ms var(--ease);
+}
+
+.pace-btn:hover {
+  color: var(--text);
+}
+
+.pace-btn.is-on {
+  background: var(--gold);
+  color: var(--on-gold);
+}
+
+.pace-real {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+/* ============================ trace rail ============================ */
+
+.trace-rail {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 126px;
+  z-index: 5;
+  padding: 0 20px;
+  pointer-events: none;
+}
+
+.trace-rail-scroll {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 0;
+  pointer-events: auto;
+  scrollbar-width: none;
+}
+
+.trace-rail-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.trace-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  padding: 5px 11px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border);
+  background: var(--nav-bg);
+  backdrop-filter: blur(12px);
+  font-size: 0.6875rem;
+  font-weight: 550;
+  color: var(--text-2);
+  cursor: pointer;
+  max-width: 230px;
+  transition: border-color 180ms var(--ease), color 180ms var(--ease);
+  animation: chipIn 300ms var(--ease-out) both;
+}
+
+@keyframes chipIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.trace-chip:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.trace-chip.is-active {
+  border-color: var(--tone, var(--gold));
+  color: var(--text);
+}
+
+.trace-chip-dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--tone, var(--text-3));
+  box-shadow: 0 0 7px var(--tone, transparent);
+}
+
+.trace-chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trace-chip-ms {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  color: var(--text-3);
+  flex: none;
+}
+
+.trace-chip-ms.is-pending {
+  animation: pulseDim 900ms ease-in-out infinite;
+}
+
+@keyframes pulseDim {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.trace-chip.is-running {
+  border-style: dashed;
+}
+
+.trace-chip.is-blocked {
+  border-color: var(--rose);
+  color: var(--rose);
+}
+
+.trace-chip.is-blocked .trace-chip-dot {
+  background: var(--rose);
+  box-shadow: 0 0 7px var(--rose);
+}
+
+.trace-chip.is-error {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+/* ============================ idle + composer ============================ */
+
+.idle-hero {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 6;
+  width: min(560px, 92%);
+  text-align: center;
+  transform: translate(-50%, calc(-50% - 104px));
+  animation: heroIn 520ms var(--ease-out) both;
+}
+
+@keyframes heroIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% - 92px));
+  }
+}
+
+.idle-hero h1 {
+  font-size: clamp(1.6rem, 1.1rem + 1.8vw, 2.4rem);
+  letter-spacing: -0.032em;
+  margin: 0 0 8px;
+}
+
+.idle-hero p {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+}
+
+/* ONE composer, two homes. The class swap animates it from the middle of the
+   room down to the dock, so the field the user typed into is the same object
+   they keep talking to rather than a lookalike in a different place. */
+.composer {
+  position: absolute;
+  left: 50%;
+  z-index: 8;
+  transition:
+    top 640ms var(--ease-out),
+    width 640ms var(--ease-out),
+    transform 640ms var(--ease-out);
+}
+
+.composer.is-center {
+  top: 50%;
+  width: min(620px, 92%);
+  transform: translate(-50%, -50%);
+}
+
+.composer.is-dock {
+  top: calc(100% - 78px);
+  width: min(700px, 94%);
+  transform: translate(-50%, -50%);
+}
+
+.composer .chat-input-bar {
+  box-shadow: var(--shadow-lg);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(20px);
+}
+
+.composer-presets {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+  animation: fadeIn 600ms var(--ease) 260ms both;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+}
+
+.composer-presets button {
+  padding: 5px 12px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border);
+  background: transparent;
+  font: inherit;
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+  cursor: pointer;
+  transition: color 160ms var(--ease), border-color 160ms var(--ease);
+}
+
+.composer-presets button:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.composer-hint {
+  margin: 8px 0 0;
+  text-align: center;
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+}
+
+.linkish {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--text-2);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.linkish:hover {
+  color: var(--gold);
+}
+
+.cinema-error {
+  position: absolute;
+  left: 50%;
+  bottom: 150px;
+  transform: translateX(-50%);
+  z-index: 9;
+  width: min(560px, 92%);
+}
+
+/* ============================ rejection ============================ */
+
+.reject-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 9;
+  width: min(460px, 92%);
+  transform: translate(-50%, calc(-50% - 118px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 22px 24px;
+  text-align: center;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--rose-soft);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow-lg);
+}
+
+.reject-mark {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--rose-ghost);
+  border: 1px solid var(--rose-soft);
+  color: var(--rose);
+}
+
+.reject-card p {
+  margin: 0;
+  font-size: var(--fs-body);
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.reject-note {
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+  line-height: 1.5;
+}
+
+/* ============================ side panel ============================ */
+
+.side-panel {
+  flex: 0 0 400px;
+  width: 400px;
+  height: 100%;
+  overflow-y: auto;
+  padding: 18px;
+  border-left: 1px solid var(--border-2);
+  background: color-mix(in srgb, var(--surface) 97%, transparent);
+  backdrop-filter: blur(24px);
+  animation: panelIn 340ms var(--ease-out) both;
+}
+
+@keyframes panelIn {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+}
+
+.sp-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.sp-head h3 {
+  margin: 8px 0 0;
+  font-size: var(--fs-h3);
+  letter-spacing: -0.018em;
+  line-height: 1.3;
+}
+
+.sp-back {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  margin-top: 2px;
+  border-radius: 8px;
+  border: 1px solid var(--border-2);
+  background: var(--surface-2);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: color 160ms var(--ease), border-color 160ms var(--ease);
+}
+
+.sp-back:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.sp-route {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 0 0 3px;
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+}
+
+.sp-route b {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.sp-protocol {
+  margin: 0 0 14px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+}
+
+.sp-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 11px 13px;
+  margin-bottom: 12px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.sp-stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.sp-stats b {
+  font-size: var(--fs-sm);
+  font-weight: 650;
+}
+
+.sp-code {
+  display: inline-block;
+  margin-bottom: 12px;
+  padding: 4px 9px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--rose-soft);
+  background: var(--rose-ghost);
+  color: var(--rose);
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+}
+
+.sp-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 11px 13px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+  color: var(--text-2);
+}
+
+.sp-summary.is-blocked {
+  border-color: var(--rose-soft);
+  background: var(--rose-ghost);
+  color: var(--rose);
+}
+
+.sp-summary svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.sp-section {
+  margin-bottom: 14px;
+}
+
+.sp-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 7px;
+}
+
+.sp-section-head h4 {
+  margin: 0;
+  font-size: var(--fs-2xs);
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.sp-explain {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.sp-explain p {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.62;
+  color: var(--text);
+}
+
+.sp-policy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+
+.sp-baskets {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.sp-baskets .basket {
+  width: 100%;
+}
+
+.sp-confirm {
+  width: 100%;
+  justify-content: center;
+  margin-top: 14px;
+}
+
+/* ============================ responsive ============================ */
+
+@media (max-width: 1180px) {
+  .side-panel {
+    flex-basis: 340px;
+    width: 340px;
+  }
+
+  .hud-legend {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .canvas-wrap {
+    padding: 60px 10px 176px;
+  }
+
+  .hud-asked {
+    display: none;
+  }
+
+  .pace-real {
+    display: none;
+  }
+
+  /* Below this width there isn't room for a stage and a panel side by side,
+     so the panel takes the screen rather than squeezing both into
+     uselessness. */
+  .cinema-body {
+    position: relative;
+  }
+
+  .side-panel {
+    position: absolute;
+    inset: 0 0 0 auto;
+    width: min(420px, 100%);
+    flex-basis: auto;
+  }
+}
+
+/* Motion is meaning here, so reduced-motion keeps every state and colour and
+   removes only the movement — the room still assembles, it simply appears
+   rather than springing, and a refusal still bursts without travelling. */
+@media (prefers-reduced-motion: reduce) {
+  .cedge,
+  .cedge.is-live,
+  .cnode,
+  .cnode.is-busy .cnode-ring,
+  .trace-chip,
+  .trace-chip-ms.is-pending,
+  .idle-hero,
+  .cinema-hud,
+  .side-panel,
+  .composer-presets {
+    animation: none !important;
+  }
+
+  .cnode,
+  .cedge,
+  .trace-chip,
+  .composer,
+  .cinema::before {
+    transition: none !important;
+  }
+}
+
+/* ============================ embedded inspector ============================ */
+
+/* Used by the Red Team and Registry pages, where the canvas sits inside a
+   card rather than owning the screen. Positioning only — the body is the same
+   HopDetail the Live Demo's side panel renders, so the two cannot drift. */
+
+.inspector {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 12;
+  width: min(400px, 94%);
+  overflow-y: auto;
+  padding: 16px;
+  border-left: 1px solid var(--border-2);
+  background: color-mix(in srgb, var(--surface) 97%, transparent);
+  backdrop-filter: blur(22px);
+  box-shadow: var(--shadow-lg);
+  animation: panelIn 300ms var(--ease-out) both;
+}
+
+/* RedTeam still labels its stage with this; same treatment as the HUD status. */
+.cinema-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border);
+  background: var(--nav-bg);
+  backdrop-filter: blur(12px);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-2);
+  white-space: nowrap;
+}

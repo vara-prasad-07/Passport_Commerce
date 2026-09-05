@@ -1,0 +1,110 @@
+{
+  "merchant": {
+    "name": "Spice Box Kitchen",
+    "domain": "spicebox.example",
+    "category": "healthy-food",
+    "service_regions": ["IN-BLR", "IN-DEL"],
+    "support_channel": "hello@spicebox.example"
+  },
+  "catalog": {
+    "items": [
+      {
+        "sku": "SB-OATS-500",
+        "name": "Overnight Protein Oats",
+        "price_minor": 22900,
+        "cost_minor": 12600,
+        "currency": "INR",
+        "stock": "in_stock",
+        "tags": ["vegetarian", "vegan", "high-protein", "breakfast"],
+        "complements": ["SB-NUT-200", "SB-JUICE-300"]
+      },
+      {
+        "sku": "SB-PANEER-250",
+        "name": "Masala Paneer Bowl",
+        "price_minor": 26500,
+        "cost_minor": 15900,
+        "currency": "INR",
+        "stock": "in_stock",
+        "tags": ["vegetarian", "high-protein", "dairy", "lunch"],
+        "complements": ["SB-JUICE-300"]
+      },
+      {
+        "sku": "SB-NUT-200",
+        "name": "Roasted Almond & Seed Mix",
+        "price_minor": 17500,
+        "cost_minor": 9200,
+        "currency": "INR",
+        "stock": "in_stock",
+        "tags": ["vegetarian", "vegan", "high-protein", "snack"],
+        "complements": ["SB-OATS-500"]
+      },
+      {
+        "sku": "SB-MILLET-400",
+        "name": "Millet Breakfast Bowl",
+        "price_minor": 19900,
+        "cost_minor": 10400,
+        "currency": "INR",
+        "stock": "in_stock",
+        "tags": ["vegan", "vegetarian", "high-protein", "breakfast", "low-sugar"],
+        "complements": ["SB-NUT-200"]
+      },
+      {
+        "sku": "SB-JUICE-300",
+        "name": "Turmeric Ginger Cooler",
+        "price_minor": 13500,
+        "cost_minor": 6800,
+        "currency": "INR",
+        "stock": "in_stock",
+        "tags": ["vegan", "vegetarian", "low-sugar"],
+        "complements": ["SB-OATS-500", "SB-PANEER-250"]
+      },
+      {
+        "sku": "SB-CHKN-300",
+        "name": "Peri Peri Chicken Bowl",
+        "price_minor": 31000,
+        "cost_minor": 19500,
+        "currency": "INR",
+        "stock": "low_stock",
+        "tags": ["high-protein", "non-vegetarian", "lunch"],
+        "complements": ["SB-JUICE-300"]
+      }
+    ]
+  },
+  "policies": {
+    "refund_window_days": 14,
+    "cancellation_allowed_before": "dispatch",
+    "support_sla_hours": 12
+  },
+  "capabilities": {
+    "discover": { "allowed": true },
+    "quote": { "allowed": true },
+    "create_order": { "allowed": true, "requires_buyer_confirmation": true },
+    "request_payment": { "allowed": true, "requires_buyer_confirmation": true },
+    "request_refund": { "allowed": true, "requires_merchant_approval": true }
+  },
+  "bounds": {
+    "max_order_value_minor": 150000,
+    "allowed_currencies": ["INR"],
+    "discount_ceiling_minor": 15000,
+    "min_margin_percent": 25,
+    "rate_limit_per_agent_per_hour": 30
+  },
+  "attestations": [
+    {
+      "type": "payment_provider_connected",
+      "issuer": "merchant",
+      "status": "declared"
+    },
+    {
+      "type": "refund_policy_declared",
+      "issuer": "merchant",
+      "status": "declared"
+    },
+    {
+      "type": "business_identity_verified",
+      "issuer": "razorpay",
+      "status": "verified"
+    }
+  ],
+  "ttl_seconds": 300
+}

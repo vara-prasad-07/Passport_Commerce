@@ -1,0 +1,197 @@
+{
+  "merchant": {
+    "name": "GreenBowl Foods",
+    "domain": "greenbowl.example",
+    "category": "healthy-food",
+    "service_regions": [
+      "IN-BLR"
+    ],
+    "support_channel": "support@greenbowl.example"
+  },
+  "catalog": {
+    "items": [
+      {
+        "sku": "OATS-500",
+        "name": "High Protein Oats",
+        "price_minor": 27300,
+        "cost_minor": 14900,
+        "currency": "INR",
+        "stock": "in_stock",
+        "tags": [
+          "vegetarian",
+          "high-protein",
+          "breakfast"
+        ],
+        "complements": [
+          "YOG-200",
+          "NUT-250"
+        ]
+      },
+      {
+        "sku": "YOG-200",
+        "name": "Greek Yogurt Cup",
+        "price_minor": 12000,
+        "cost_minor": 7500,
+        "currency": "INR",
+        "stock": "in_stock",
+        "tags": [
+          "vegetarian",
+          "high-protein",
+          "breakfast",
+          "dairy"
+        ],
+        "complements": [
+          "OATS-500",
+          "NUT-250"
+        ]
+      },
+      {
+        "sku": "NUT-250",
+        "name": "Mixed Nuts Pack",
+        "price_minor": 19900,
+        "cost_minor": 11900,
+        "currency": "INR",
+        "stock": "in_stock",
+        "tags": [
+          "vegetarian",
+          "vegan",
+          "high-protein",
+          "snack"
+        ],
+        "complements": [
+          "OATS-500",
+          "YOG-200"
+        ]
+      },
+      {
+        "sku": "SMTH-300",
+        "name": "Green Protein Smoothie",
+        "price_minor": 22000,
+        "cost_minor": 13500,
+        "currency": "INR",
+        "stock": "in_stock",
+        "tags": [
+          "vegan",
+          "high-protein",
+          "breakfast"
+        ],
+        "complements": [
+          "NUT-250"
+        ]
+      },
+      {
+        "sku": "EGGW-150",
+        "name": "Egg White Wrap",
+        "price_minor": 17900,
+        "cost_minor": 11000,
+        "currency": "INR",
+        "stock": "in_stock",
+        "tags": [
+          "high-protein",
+          "breakfast",
+          "non-vegetarian"
+        ],
+        "complements": [
+          "SMTH-300"
+        ]
+      },
+      {
+        "sku": "CHIA-100",
+        "name": "Chia Pudding Cup",
+        "price_minor": 14900,
+        "cost_minor": 9000,
+        "currency": "INR",
+        "stock": "low_stock",
+        "tags": [
+          "vegan",
+          "vegetarian",
+          "breakfast",
+          "low-sugar"
+        ],
+        "complements": [
+          "NUT-250"
+        ]
+      },
+      {
+        "sku": "GRAN-400",
+        "name": "House Granola Bag",
+        "price_minor": 29900,
+        "cost_minor": 22000,
+        "currency": "INR",
+        "stock": "in_stock",
+        "tags": [
+          "vegetarian",
+          "vegan",
+          "breakfast"
+        ],
+        "complements": [
+          "YOG-200"
+        ]
+      },
+      {
+        "sku": "JUICE-250",
+        "name": "Cold Pressed Green Juice",
+        "price_minor": 15900,
+        "cost_minor": 9500,
+        "currency": "INR",
+        "stock": "in_stock",
+        "tags": [
+          "vegan",
+          "vegetarian",
+          "low-sugar"
+        ],
+        "complements": [
+          "EGGW-150",
+          "OATS-500"
+        ]
+      }
+    ]
+  },
+  "policies": {
+    "refund_window_days": 7,
+    "cancellation_allowed_before": "fulfilment",
+    "support_sla_hours": 24
+  },
+  "capabilities": {
+    "discover": {
+      "allowed": true
+    },
+    "quote": {
+      "allowed": true
+    },
+    "create_order": {
+      "allowed": true,
+      "requires_buyer_confirmation": true
+    },
+    "request_payment": {
+      "allowed": true,
+      "requires_buyer_confirmation": true
+    },
+    "request_refund": {
+      "allowed": true,
+      "requires_merchant_approval": true
+    }
+  },
+  "bounds": {
+    "max_order_value_minor": 100000,
+    "allowed_currencies": [
+      "INR"
+    ],
+    "discount_ceiling_minor": 10000,
+    "min_margin_percent": 30,
+    "rate_limit_per_agent_per_hour": 20
+  },
+  "attestations": [
+    {
+      "type": "payment_provider_connected",
+      "issuer": "merchant",
+      "status": "declared"
+    },
+    {
+      "type": "refund_policy_declared",
+      "issuer": "merchant",
+      "status": "declared"
+    }
+  ],
+  "ttl_seconds": 300
+}
